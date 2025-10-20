@@ -14,40 +14,45 @@ function App() {
     }
 
     async function getTriviaQuestions() {
-        await fetch("https://opentdb.com/api.php?amount=5&type=multiple")
-                            .then(res => res.json())
-                            .then(data => setQuestions(data.results))
+        const res = await fetch("https://opentdb.com/api.php?amount=5&type=multiple")
+        const data = await res.json().then(data => {
+                        const newData = Array.from(data.results)
+                            .map(questionObj => {
+                                const choicesArray = [...questionObj.incorrect_answers]
+                                const randomIndex = Math.floor(Math.random() * (choicesArray.length + 1))
+                                choicesArray.splice(randomIndex, 0, questionObj.correct_answer)
+
+                                return {...questionObj, choicesArray}
+                            })
+                        console.log(newData)
+                        setQuestions(newData)
+                    })             
     }
 
-    const questionElements = questions.map(questionObj => {
+    const questionBlock = questions.map(questionObj => {
+
+        const questionElements = questionObj.choicesArray.map(element => {
+            return(
+                <div key={element} className="radio">
+                    <input 
+                        type="radio" 
+                        id={element} 
+                        value={element}
+                        name={questionObj.question} 
+                    />
+                    <label htmlFor={element}>
+                        {decode(element)}
+                    </label>
+                </div>
+            )
+        })
+
         return (
             <div className="question-block">
                 <h2>{decode(questionObj.question)}</h2>
                 <form name="multiple-choice">
-                    <label for={questionObj.correct_answer}>
-                        {decode(questionObj.correct_answer)}
-                    </label>
-                    <input 
-                        type="radio" 
-                        id={questionObj.correct_answer} 
-                        value={questionObj.correct_answer}
-                        name="multiple-choice" 
-                    />
-                    <label for={questionObj.incorrect_answers[0]}>
-                        {decode(questionObj.incorrect_answers[0])}
-                    </label>
-                    <input 
-                            type="radio" 
-                            id={questionObj.incorrect_answers[0]} 
-                            value={questionObj.incorrect_answers[0]}
-                            name="multiple-choice" 
-                    />
+                    {questionElements}
                 </form>
-
-                {/* <span>{decode(questionObj.correct_answer)}</span>
-                <span>{decode(questionObj.incorrect_answers[0])}</span>
-                <span>{decode(questionObj.incorrect_answers[1])}</span>
-                <span>{decode(questionObj.incorrect_answers[2])}</span> */}
             </div>
         )
     })
@@ -56,7 +61,9 @@ function App() {
         quizpage : questions.length > 0
     })
 
-    console.log(blobStyle)
+    function revealAnswers() {
+        setCurrentPage("answers-page")
+    }
 
     return (
         <>
@@ -70,8 +77,15 @@ function App() {
                 <button onClick={startQuiz}>Start quiz</button>
             </section>}
             {currentPage === "quiz-page" && <section className="quiz-page">
-                {questionElements}
-                <button>Check answers</button>
+                {questionBlock}
+                <button onClick={revealAnswers}>Check answers</button>
+            </section>}
+            {currentPage === "answers-page" && <section className="answers-page">
+                {questionBlock}
+                <div>
+                    <span>You scored ?/5 correct answers.</span>
+                    <button onClick={startQuiz}>Check answers</button>
+                </div>
             </section>}
         </>
     )
